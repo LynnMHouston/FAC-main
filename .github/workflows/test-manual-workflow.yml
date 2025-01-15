@@ -1,0 +1,12 @@
+---
+name: Simple Manual Workflow
+
+on:
+  workflow_dispatch:  # Enables manual trigger
+
+jobs:
+  test_job:
+    runs-on: ubuntu-latest  # Use a Linux runner
+    steps:
+      - name: Say Hello
+        run: echo "Hello, GitHub Actions!"
