@@ -1,0 +1,82 @@
+---
+name: ALN File Merge
+
+on:
+  workflow_dispatch:  # Enables manual trigger
+
+jobs:
+  process_csv:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Set Up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+
+      - name: Install Dependencies
+        run: pip install pandas
+
+      - name: Merge, Clean, and Standardize CSV Files
+        run: |
+          python -c "
+          import os
+          import pandas as pd
+          from datetime import datetime
+          import glob
+
+          # Folder containing the CSV files
+          folder = './backend/schemas/source/data/ALNs_raw_downloads'
+          date_suffix = datetime.now().strftime('%Y%m%d')
+          output_file = f'./backend/schemas/source/data/cfda-lookup-{date_suffix}.csv'
+
+          print(f'Looking for CSV files in: {folder}')
+          csv_files = glob.glob(f'{folder}/*.csv')
+          print(f'CSV files found: {csv_files}')
+
+          if not csv_files:
+              print('No data found in the input files.')
+              exit(1)
+
+          # Read and concatenate all CSV files
+          all_data = []
+          for f in csv_files:
+              try:
+                  df = pd.read_csv(f, encoding='utf-8')
+              except UnicodeDecodeError:
+                  print(f'Warning: Could not read {f} with UTF-8. Trying ISO-8859-1.')
+                  df = pd.read_csv(f, encoding='ISO-8859-1')
+              all_data.append(df)
+
+          # Combine all data into a single DataFrame
+          combined_data = pd.concat(all_data, ignore_index=True)
+
+          # Identify all unique columns across the files
+          all_columns = combined_data.columns.unique()
+
+          # Ensure all rows have the same columns
+          standardized_data = combined_data.reindex(columns=all_columns, fill_value=None)
+
+          # Define the column mapping for renaming
+          column_mapping = {
+              'Title': 'Program Title',
+              'Assistance Listings Number': 'Program Number',
+              'Date Published': 'Date Published',
+              'Department/Ind. Agency': 'Department/Ind. Agency',
+              'Funded': 'Funded',
+              'Last Date Modified': 'Last Date Modified',
+              'POC Information': 'POC Information',
+              'Related Federal Assistance': 'Related Federal Assistance',
+              'Sub-Tier': 'Sub-Tier',
+              'Types of Assistance': 'Types of Assistance'
+          }
+
+          # Rename and reorder columns
+          standardized_data = standardized_data.rename(columns=column_mapping)
+
+          print(f'Saving merged and standardized CSV to: {output_file}')
+          standardized_data.to_csv(output_file, index=False, encoding='utf-8')
+          print('CSV processing completed successfully.')
+          "
