@@ -19,6 +19,9 @@ jobs:
       - name: Install Dependencies
         run: pip install pandas
 
+      - name: Debug: List Files in Folder
+        run: ls -R "./backend/schemas/source/data/ALN raw downloads for CFDA lookup files"
+
       - name: Merge and Standardize CSV Files
         run: |
           python -c "
@@ -27,10 +30,10 @@ jobs:
           from datetime import datetime
           import glob
 
-          # Fixed absolute path
-          folder = '/home/runner/work/FAC-main/backend/schemas/source/data/ALN raw downloads for CFDA lookup files'
+          # Repository-relative path
+          folder = './backend/schemas/source/data/ALN raw downloads for CFDA lookup files'
           date_suffix = datetime.now().strftime('%Y%m%d')
-          output_file = f'/home/runner/work/FAC-main/backend/schemas/source/data/cfda-lookup-{date_suffix}.csv'
+          output_file = f'./backend/schemas/source/data/cfda-lookup-{date_suffix}.csv'
 
           print(f'Looking for CSV files in: {folder}')
           csv_files = glob.glob(f'{folder}/*.csv')
