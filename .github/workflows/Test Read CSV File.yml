@@ -14,13 +14,13 @@ jobs:
       - name: List Files in the Target Folder
         run: |
           echo "Files in the target folder:"
-          ls "./backend/schemas/source/data/ALN raw downloads for CFDA lookup files"
+          ls "./backend/schemas/source/data/ALNs_raw_downloads"
 
       - name: Read and Print First Line of a CSV
         run: |
           # Locate the folder and find a CSV file
-          TARGET_FOLDER="./backend/schemas/source/data/ALN raw downloads for CFDA lookup files"
-          CSV_FILE=$(ls $TARGET_FOLDER/*.csv | head -n 1)
+          TARGET_FOLDER="./backend/schemas/source/data/ALNs_raw_downloads"
+          CSV_FILE=$(find "$TARGET_FOLDER" -name "*.csv" | head -n 1)
 
           if [ -z "$CSV_FILE" ]; then
             echo "No CSV files found in $TARGET_FOLDER"
