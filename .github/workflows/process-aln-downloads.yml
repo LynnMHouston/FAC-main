@@ -2,8 +2,8 @@ name: Process ALN Raw Downloads
 
 on:
   push:
-    paths:
-      - "backend/schemas/source/data/ALN raw downloads for CFDA lookup files/**"
+    branches:
+      - main
 
 jobs:
   run_powershell_script:
