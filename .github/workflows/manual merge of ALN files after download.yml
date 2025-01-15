@@ -1,5 +1,5 @@
 ---
-name: ALN Downloads Merge and Standardize
+name: Merge and Standardize CSV Files
 
 on:
   workflow_dispatch:
@@ -19,9 +19,6 @@ jobs:
       - name: Install Dependencies
         run: pip install pandas
 
-      - name: Debug: List Files in Folder
-        run: ls "./backend/schemas/source/data/ALN raw downloads for CFDA lookup files"
-
       - name: Merge and Standardize CSV Files
         run: |
           python -c "
@@ -30,11 +27,11 @@ jobs:
           from datetime import datetime
           import glob
 
-          folder = './backend/schemas/source/data/ALN raw downloads for CFDA lookup files'
+          # Fixed absolute path
+          folder = '/home/runner/work/FAC-main/backend/schemas/source/data/ALN raw downloads for CFDA lookup files'
           date_suffix = datetime.now().strftime('%Y%m%d')
-          output_file = f'{os.path.dirname(folder)}/cfda-lookup-{date_suffix}.csv'
+          output_file = f'/home/runner/work/FAC-main/backend/schemas/source/data/cfda-lookup-{date_suffix}.csv'
 
-          # Debug: Print folder contents
           print(f'Looking for CSV files in: {folder}')
           csv_files = glob.glob(f'{folder}/*.csv')
           print(f'CSV files found: {csv_files}')
