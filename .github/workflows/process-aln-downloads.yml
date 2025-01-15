@@ -3,7 +3,7 @@ name: Process ALN Raw Downloads
 on:
   push:
     paths:
-      - backend/schemas/source/data/ALN raw downloads for CFDA lookup files/**
+      - "backend/schemas/source/data/ALN raw downloads for CFDA lookup files/**"
 
 jobs:
   run_powershell_script:
@@ -18,4 +18,4 @@ jobs:
           pwsh-version: '7.2.0'
 
       - name: Run PowerShell Script
-        run: pwsh backend/schemas/source/data/ALN raw downloads for CFDA lookup files/MergeCsvFiles.ps1
+        run: pwsh "./backend/schemas/source/data/ALN raw downloads for CFDA lookup files/MergeCsvFiles.ps1"
