@@ -1,5 +1,5 @@
 ---
-name: Merge and Standardize CSV Files
+name: ALN Downloads Merge and Standardize
 
 on:
   workflow_dispatch:
@@ -19,6 +19,9 @@ jobs:
       - name: Install Dependencies
         run: pip install pandas
 
+      - name: Debug: List Files in Folder
+        run: ls "./backend/schemas/source/data/ALN raw downloads for CFDA lookup files"
+
       - name: Merge and Standardize CSV Files
         run: |
           python -c "
@@ -31,12 +34,24 @@ jobs:
           date_suffix = datetime.now().strftime('%Y%m%d')
           output_file = f'{os.path.dirname(folder)}/cfda-lookup-{date_suffix}.csv'
 
+          # Debug: Print folder contents
+          print(f'Looking for CSV files in: {folder}')
           csv_files = glob.glob(f'{folder}/*.csv')
+          print(f'CSV files found: {csv_files}')
+
           if not csv_files:
               print('No data found in the input files.')
               exit(1)
 
-          all_data = [pd.read_csv(f) for f in csv_files]
+          all_data = []
+          for f in csv_files:
+              try:
+                  df = pd.read_csv(f, encoding='utf-8')
+              except UnicodeDecodeError:
+                  print(f'Warning: Could not read {f} with UTF-8. Trying ISO-8859-1.')
+                  df = pd.read_csv(f, encoding='ISO-8859-1')
+              all_data.append(df)
+
           all_columns = pd.concat(all_data, ignore_index=True).columns.unique()
           standardized_data = [df.reindex(columns=all_columns, fill_value=None) for df in all_data]
 
@@ -56,6 +71,7 @@ jobs:
           reordered_data = pd.concat(standardized_data, ignore_index=True)
           reordered_data = reordered_data.rename(columns=column_mapping)
 
+          print(f'Saving merged CSV to: {output_file}')
           reordered_data.to_csv(output_file, index=False, encoding='utf-8')
-          print(f'Data from all CSV files in {folder} has been merged, standardized, and saved to {output_file} with UTF-8 encoding.')
+          print('Merge completed successfully.')
           "
