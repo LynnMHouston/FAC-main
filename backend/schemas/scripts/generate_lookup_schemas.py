@@ -37,9 +37,14 @@ def process_cfda_lookup(file_path):
     unique_cfda_dict = {}
 
     for program_number in program_numbers:
-        prefix, _ = program_number.split(".")
-        unique_prefixes_dict[prefix] = None
-        unique_cfda_dict[program_number] = None
+        # Clean up program number
+        program_number = cleanup_string(program_number)
+        if "." in program_number:
+            prefix, _ = program_number.split(".", 1)  # Use split with a limit of 1
+            unique_prefixes_dict[prefix] = None
+            unique_cfda_dict[program_number] = None
+        else:
+            print(f"Warning: Invalid Program Number '{program_number}'. Skipping.")
 
     unique_prefix_list = list(unique_prefixes_dict.keys())
     unique_cfda_list = list(unique_cfda_dict.keys())
@@ -57,7 +62,6 @@ def process_cfda_lookup(file_path):
         "all_alns": unique_cfda_list,
         "aln_prefixes": unique_prefix_list,
     }
-
 
 def process_cluster_names(filename):
     df = pd.read_csv(filename)
