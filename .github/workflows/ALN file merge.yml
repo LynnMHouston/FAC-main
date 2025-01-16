@@ -20,6 +20,7 @@ jobs:
         run: |
           pip install pandas
           pip install openpyxl
+          pip install _jsonnet
           sudo apt-get update && sudo apt-get install -y jsonnet
 
       - name: Merge, Clean, and Standardize CSV Files
