@@ -30,6 +30,7 @@ jobs:
           folder = './backend/schemas/source/data/ALNs_raw_downloads'
           timestamp = datetime.now().strftime('%Y%m%d-%H%M%S')
           output_file = f'./backend/schemas/source/data/cfda-lookup-{timestamp}.csv'
+          invalid_file = f'./backend/schemas/source/data/invalid-program-numbers-{timestamp}.csv'
 
           print(f'Looking for CSV files in: {folder}')
           csv_files = glob.glob(f'{folder}/*.csv')
@@ -53,16 +54,25 @@ jobs:
           # Clean and validate the Program Number column
           if 'Program Number' in combined_data.columns:
               combined_data['Program Number'] = combined_data['Program Number'].apply(
-                  lambda x: str(x).strip() if pd.notnull(x) else x
+                  lambda x: str(x).strip() if pd.notnull(x) else None
               )
-              # Filter out rows where Program Number does not contain a dot
-              valid_rows = combined_data['Program Number'].str.contains(r'\\.', na=False)
-              combined_data = combined_data[valid_rows]
-              print(f'Filtered invalid Program Numbers. Remaining rows: {len(combined_data)}')
+              # Separate valid and invalid rows
+              valid_rows = combined_data['Program Number'].str.contains(r'\.', na=False)
+              valid_data = combined_data[valid_rows]
+              invalid_data = combined_data[~valid_rows]
+              print(f'Filtered invalid Program Numbers. Remaining rows: {len(valid_data)}')
+
+              # Save invalid rows for debugging
+              if not invalid_data.empty:
+                  invalid_data.to_csv(invalid_file, index=False, encoding='utf-8')
+                  print(f'Saved invalid rows to: {invalid_file}')
+          else:
+              print('Warning: Program Number column not found. Skipping validation.')
+              valid_data = combined_data
 
           # Standardize the column order and fill missing values
-          all_columns = combined_data.columns.unique()
-          standardized_data = combined_data.reindex(columns=all_columns, fill_value=None)
+          all_columns = valid_data.columns.unique()
+          standardized_data = valid_data.reindex(columns=all_columns, fill_value=None)
 
           column_mapping = {
               'Title': 'Program Title',
@@ -90,7 +100,8 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add ./backend/schemas/source/data/cfda-lookup-*.csv
-          git diff --cached --quiet || git commit -m "Add cleaned and validated CSV file"
+          git add ./backend/schemas/source/data/invalid-program-numbers-*.csv
+          git diff --cached --quiet || git commit -m "Add cleaned and validated CSV file with invalid rows logged"
           git push
 
       - name: Run Make All
