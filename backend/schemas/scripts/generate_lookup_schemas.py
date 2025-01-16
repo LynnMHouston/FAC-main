@@ -90,7 +90,7 @@ if __name__ == "__main__":
             print(f"No {item_to_process} CSV files found in schemas/source/data/")
             sys.exit(1)
 
-        latest_file = sorted(list_of_files)[-1]
+        latest_file = max(list_of_files, key=os.path.getmtime)
         print(f"Processing latest file {latest_file}")
 
         obj = None
