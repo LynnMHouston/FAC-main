@@ -2,6 +2,7 @@ import glob
 import json
 import pandas as pd
 import sys
+import os
 
 """
 This script processes CFDA/ALN and cluster name CSV files to generate schema
