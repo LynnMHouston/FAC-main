@@ -5,7 +5,7 @@ on:
   workflow_dispatch:  # Enables manual trigger
 
 jobs:
-  merge_and_run:
+  process_and_update:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
@@ -19,7 +19,7 @@ jobs:
       - name: Install Dependencies
         run: pip install pandas
 
-      - name: Merge and Filter CSV Files
+      - name: Merge, Clean, and Standardize CSV Files
         run: |
           python -c "
           import os
@@ -28,8 +28,8 @@ jobs:
           import glob
 
           folder = './backend/schemas/source/data/ALNs_raw_downloads'
-          timestamp = datetime.now().strftime('%Y%m%d-%H%M%S')
-          output_file = f'./backend/schemas/source/data/cfda-lookup-{timestamp}.csv'
+          date_suffix = datetime.now().strftime('%Y%m%d')
+          output_file = f'./backend/schemas/source/data/cfda-lookup-{date_suffix}.csv'
 
           print(f'Looking for CSV files in: {folder}')
           csv_files = glob.glob(f'{folder}/*.csv')
@@ -40,27 +40,35 @@ jobs:
               exit(1)
 
           all_data = []
-          for file in csv_files:
+          for f in csv_files:
               try:
-                  df = pd.read_csv(file, encoding='utf-8')
+                  df = pd.read_csv(f, encoding='utf-8')
               except UnicodeDecodeError:
-                  print(f'Warning: Could not read {file} with UTF-8. Trying ISO-8859-1.')
-                  df = pd.read_csv(file, encoding='ISO-8859-1')
+                  print(f'Warning: Could not read {f} with UTF-8. Trying ISO-8859-1.')
+                  df = pd.read_csv(f, encoding='ISO-8859-1')
               all_data.append(df)
 
           combined_data = pd.concat(all_data, ignore_index=True)
+          all_columns = combined_data.columns.unique()
+          standardized_data = combined_data.reindex(columns=all_columns, fill_value=None)
 
-          # Filter rows with valid Program Number
-          if 'Program Number' in combined_data.columns:
-              combined_data['Program Number'] = combined_data['Program Number'].astype(str).str.strip()
-              combined_data = combined_data[combined_data['Program Number'].str.contains(r'\\.', na=False)]
-              print(f'Filtered valid rows. Remaining rows: {len(combined_data)}')
-          else:
-              print('No Program Number column found. Exiting.')
-              exit(1)
+          column_mapping = {
+              'Title': 'Program Title',
+              'Assistance Listings Number': 'Program Number',
+              'Date Published': 'Date Published',
+              'Department/Ind. Agency': 'Department/Ind. Agency',
+              'Funded': 'Funded',
+              'Last Date Modified': 'Last Date Modified',
+              'POC Information': 'POC Information',
+              'Related Federal Assistance': 'Related Federal Assistance',
+              'Sub-Tier': 'Sub-Tier',
+              'Types of Assistance': 'Types of Assistance'
+          }
 
-          print(f'Saving merged file to: {output_file}')
-          combined_data.to_csv(output_file, index=False, encoding='utf-8')
+          standardized_data = standardized_data.rename(columns=column_mapping)
+          print(f'Saving merged and standardized CSV to: {output_file}')
+          standardized_data.to_csv(output_file, index=False, encoding='utf-8')
+          print('CSV processing completed successfully.')
           "
 
       - name: Commit and Push Merged File
@@ -70,7 +78,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add ./backend/schemas/source/data/cfda-lookup-*.csv
-          git diff --cached --quiet || git commit -m "Add filtered and validated CSV file"
+          git diff --cached --quiet || git commit -m "Add merged and standardized CSV file"
           git push
 
       - name: Run Make All
