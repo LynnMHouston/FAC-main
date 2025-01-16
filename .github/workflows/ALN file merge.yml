@@ -1,11 +1,11 @@
 ---
-name: Update Workbook with ALN Listings
+name: ALN File Merge
 
 on:
   workflow_dispatch:  # Enables manual trigger
 
 jobs:
-  update_workbook:
+  process_and_update:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
@@ -16,18 +16,73 @@ jobs:
         with:
           python-version: '3.x'
 
-      - name: Install Python Dependencies
-        run: pip install -r backend/schemas/requirements.txt
+      - name: Install Dependencies
+        run: pip install pandas
 
-      - name: Run Make All
-        run: make -C backend/schemas all
+      - name: Merge and Standardize CSV Files
+        run: |
+          python -c "
+          import os
+          import pandas as pd
+          from datetime import datetime
+          import glob
 
-      - name: Commit and Push Updated Workbook
+          folder = './backend/schemas/source/data/ALNs_raw_downloads'
+          date_suffix = datetime.now().strftime('%Y%m%d')
+          output_file = f'./backend/schemas/source/data/cfda-lookup-{date_suffix}.csv'
+
+          print(f'Looking for CSV files in: {folder}')
+          csv_files = glob.glob(f'{folder}/*.csv')
+          print(f'CSV files found: {csv_files}')
+
+          if not csv_files:
+              print('No data found in the input files.')
+              exit(1)
+
+          all_data = []
+          for f in csv_files:
+              try:
+                  df = pd.read_csv(f, encoding='utf-8')
+              except UnicodeDecodeError:
+                  print(f'Warning: Could not read {f} with UTF-8. Trying ISO-8859-1.')
+                  df = pd.read_csv(f, encoding='ISO-8859-1')
+              all_data.append(df)
+
+          combined_data = pd.concat(all_data, ignore_index=True)
+          all_columns = combined_data.columns.unique()
+          standardized_data = combined_data.reindex(columns=all_columns, fill_value=None)
+
+          column_mapping = {
+              'Title': 'Program Title',
+              'Assistance Listings Number': 'Program Number',
+              'Date Published': 'Date Published',
+              'Department/Ind. Agency': 'Department/Ind. Agency',
+              'Funded': 'Funded',
+              'Last Date Modified': 'Last Date Modified',
+              'POC Information': 'POC Information',
+              'Related Federal Assistance': 'Related Federal Assistance',
+              'Sub-Tier': 'Sub-Tier',
+              'Types of Assistance': 'Types of Assistance'
+          }
+
+          standardized_data = standardized_data.rename(columns=column_mapping)
+          print(f'Saving merged and standardized CSV to: {output_file}')
+          standardized_data.to_csv(output_file, index=False, encoding='utf-8')
+          print('CSV processing completed successfully.')
+          "
+
+      - name: Commit and Push Merged CSV
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add output/excel/xlsx/*
-          git commit -m "Update workbook with latest ALN listings"
+          git add ./backend/schemas/source/data/cfda-lookup-*.csv
+          git commit -m "Add merged and standardized CSV file"
           git push
+
+      - name: Install Additional Dependencies for Workbook Update
+        run: pip install -r backend/schemas/requirements.txt
+
+      - name: Run Make All
+        run: make -C backend/schemas all
