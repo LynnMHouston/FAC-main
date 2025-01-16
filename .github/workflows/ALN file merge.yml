@@ -5,7 +5,7 @@ on:
   workflow_dispatch:  # Enables manual trigger
 
 jobs:
-  process_and_update:
+  process_csv:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
@@ -19,7 +19,7 @@ jobs:
       - name: Install Dependencies
         run: pip install pandas
 
-      - name: Merge and Standardize CSV Files
+      - name: Merge, Clean, and Standardize CSV Files
         run: |
           python -c "
           import os
@@ -71,7 +71,7 @@ jobs:
           print('CSV processing completed successfully.')
           "
 
-      - name: Commit and Push Merged CSV
+      - name: Commit and Push Merged File
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -80,9 +80,6 @@ jobs:
           git add ./backend/schemas/source/data/cfda-lookup-*.csv
           git commit -m "Add merged and standardized CSV file"
           git push
-
-      - name: Install Additional Dependencies for Workbook Update
-        run: pip install -r backend/schemas/requirements.txt
 
       - name: Run Make All
         run: make -C backend/schemas all
