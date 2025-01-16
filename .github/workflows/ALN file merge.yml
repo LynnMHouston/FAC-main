@@ -56,7 +56,7 @@ jobs:
                   lambda x: str(x).strip() if pd.notnull(x) else x
               )
               # Filter out rows where Program Number does not contain a dot
-              valid_rows = combined_data['Program Number'].str.contains("\\.", na=False)
+              valid_rows = combined_data['Program Number'].str.contains(r"\\.", na=False)
               combined_data = combined_data[valid_rows]
               print(f'Filtered invalid Program Numbers. Remaining rows: {len(combined_data)}')
 
