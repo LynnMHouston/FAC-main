@@ -17,7 +17,9 @@ jobs:
           python-version: '3.x'
 
       - name: Install Dependencies
-        run: pip install pandas
+        run: |
+          pip install pandas
+          sudo apt-get update && sudo apt-get install -y jsonnet
 
       - name: Merge, Clean, and Standardize CSV Files
         run: |
