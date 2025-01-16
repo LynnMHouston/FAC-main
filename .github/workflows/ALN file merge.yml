@@ -99,8 +99,18 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          # Stage the main merged file
           git add ./backend/schemas/source/data/cfda-lookup-*.csv
-          git add ./backend/schemas/source/data/invalid-program-numbers-*.csv
+
+          # Check if invalid rows file exists and stage it if present
+          if ls ./backend/schemas/source/data/invalid-program-numbers-*.csv 2>/dev/null; then
+            git add ./backend/schemas/source/data/invalid-program-numbers-*.csv
+          else
+            echo "No invalid rows file to stage."
+          fi
+
+          # Commit and push if there are changes
           git diff --cached --quiet || git commit -m "Add cleaned and validated CSV file with invalid rows logged"
           git push
 
