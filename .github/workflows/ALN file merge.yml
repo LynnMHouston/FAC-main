@@ -28,7 +28,6 @@ jobs:
           import glob
 
           folder = './backend/schemas/source/data/ALNs_raw_downloads'
-          # Add both date and time to the filename
           timestamp = datetime.now().strftime('%Y%m%d-%H%M%S')
           output_file = f'./backend/schemas/source/data/cfda-lookup-{timestamp}.csv'
 
@@ -50,6 +49,15 @@ jobs:
               all_data.append(df)
 
           combined_data = pd.concat(all_data, ignore_index=True)
+
+          # Clean the Program Number column
+          if 'Program Number' in combined_data.columns:
+              combined_data['Program Number'] = combined_data['Program Number'].apply(
+                  lambda x: str(x).strip() if pd.notnull(x) else x
+              )
+              print('Cleaned Program Number column.')
+
+          # Standardize the column order and fill missing values
           all_columns = combined_data.columns.unique()
           standardized_data = combined_data.reindex(columns=all_columns, fill_value=None)
 
@@ -79,7 +87,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add ./backend/schemas/source/data/cfda-lookup-*.csv
-          git diff --cached --quiet || git commit -m "Add merged and standardized CSV file with timestamp"
+          git commit -m "Add cleaned and standardized CSV file"
           git push
 
       - name: Run Make All
