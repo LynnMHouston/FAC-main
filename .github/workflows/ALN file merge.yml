@@ -117,6 +117,12 @@ jobs:
           git diff --cached --quiet || git commit -m "Update merged CSV and FederalProgramNames.json"
           git push
           
+      - name: Install Jsonnet and Python module
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jsonnet
+          pip install git+https://github.com/google/jsonnet.git 
+          
       - name: Install Jsonnetfmt
         run: |
           sudo apt-get update
