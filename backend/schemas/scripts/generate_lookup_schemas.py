@@ -20,8 +20,10 @@ def cleanup_string(s):
     s = " ".join(s.split())
     return s
 
+
 def lmap(fun, ls):
     return list(map(fun, ls))
+
 
 def process_cfda_lookup(file_path):
     print(f"Processing CFDA lookup file: {file_path}")
@@ -56,6 +58,7 @@ def process_cfda_lookup(file_path):
         "aln_prefixes": unique_prefix_list,
     }
 
+
 def process_cluster_names(filename):
     print(f"Processing cluster names file: {filename}")
     df = pd.read_csv(filename)
@@ -64,6 +67,7 @@ def process_cluster_names(filename):
     cluster_names = lmap(lambda s: s.upper(), cluster_names)
 
     return {"cluster_names": cluster_names}
+
 
 if __name__ == "__main__":
     if len(sys.argv) >= 2:
@@ -75,9 +79,13 @@ if __name__ == "__main__":
         list_of_files = glob.glob(glob_str)
         print(f"Found {len(list_of_files)} files")
 
-        if not list_of_files:
+        if not len(list_of_files):
             print(f"No {item_to_process} CSV files found in schemas/source/data/")
-            sys.exit(1)
+            if item_to_process == "cluster-names":
+                print("Skipping cluster-names processing as the file is not found.")
+                sys.exit(0)  # Exit without error for cluster-names
+            else:
+                sys.exit(1)  # Exit with error for other cases
 
         latest_file = max(list_of_files, key=os.path.getmtime)
         print(f"Processing latest file {latest_file}")
