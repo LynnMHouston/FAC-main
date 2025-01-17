@@ -2,26 +2,31 @@
 name: ALN File Merge
 
 on:
-  workflow_dispatch:
+  workflow_dispatch:  # Enables manual trigger
 
 jobs:
   process_and_update:
     runs-on: ubuntu-latest
     steps:
+      # Checkout the repository
       - name: Checkout Repository
         uses: actions/checkout@v3
 
+      # Set up Python
       - name: Set Up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.x'
 
+      # Install dependencies
       - name: Install Dependencies
         run: pip install pandas openpyxl
 
+      # Merge, clean, and standardize CSV files
       - name: Merge, Clean, and Standardize CSV Files
         run: |
           python -c "
+          import os
           import pandas as pd
           import glob
 
@@ -46,6 +51,9 @@ jobs:
               all_data.append(df)
 
           combined_data = pd.concat(all_data, ignore_index=True)
+          all_columns = combined_data.columns.unique()
+          standardized_data = combined_data.reindex(columns=all_columns, fill_value=None)
+
           column_mapping = {
               'Title': 'Program Title',
               'Assistance Listings Number': 'Program Number',
@@ -59,20 +67,56 @@ jobs:
               'Types of Assistance': 'Types of Assistance'
           }
 
-          combined_data = combined_data.rename(columns=column_mapping)
-          combined_data.to_csv(output_file, index=False, encoding='utf-8')
-          print(f'Merged CSV saved to {output_file}')
+          standardized_data = standardized_data.rename(columns=column_mapping)
+          print(f'Saving merged and standardized CSV to: {output_file}')
+          standardized_data.to_csv(output_file, index=False, encoding='utf-8')
+          print('CSV processing completed successfully.')
           "
 
-      - name: Commit and Push Merged File
+      # Update FederalProgramNames.json
+      - name: Update FederalProgramNames.json
+        run: |
+          python -c "
+          import pandas as pd
+          import json
+
+          input_file = './backend/schemas/source/data/cfda-lookup.csv'
+          output_file = './backend/schemas/source/base/FederalProgramNames.json'
+
+          print(f'Loading CSV file: {input_file}')
+          df = pd.read_csv(input_file)
+
+          print('Processing Program Names and Numbers')
+          program_names = df['Program Title'].dropna().str.strip().str.upper().tolist()
+          program_numbers = df['Program Number'].dropna().str.strip().tolist()
+
+          unique_prefixes = {num.split('.')[0]: None for num in program_numbers if '.' in num}
+          unique_cfda = {num: None for num in program_numbers}
+
+          output_data = {
+              'program_names': program_names,
+              'all_alns': list(unique_cfda.keys()),
+              'aln_prefixes': list(unique_prefixes.keys()),
+          }
+
+          print(f'Writing JSON file to: {output_file}')
+          with open(output_file, 'w') as json_file:
+              json.dump(output_data, json_file, indent=2, sort_keys=True)
+          print('FederalProgramNames.json updated successfully')
+          "
+
+      # Commit and push merged CSV and updated JSON
+      - name: Commit and Push Changes
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add ./backend/schemas/source/data/cfda-lookup.csv
-          git commit -m "Update cfda-lookup.csv file"
+          git add ./backend/schemas/source/base/FederalProgramNames.json
+          git diff --cached --quiet || git commit -m "Update merged CSV and FederalProgramNames.json"
           git push
 
+      # Run make all
       - name: Run Make All
         run: make -C backend/schemas all
