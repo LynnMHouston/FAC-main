@@ -45,7 +45,8 @@ jobs:
           import glob
 
           folder = './backend/schemas/source/data/ALNs_raw_downloads'
-          output_file = './backend/schemas/source/data/cfda-lookup.csv'
+          date_suffix = pd.Timestamp.now().strftime('%Y%m%d')
+          output_file = f'./backend/schemas/source/data/cfda-lookup-{date_suffix}.csv'
 
           print(f'Looking for CSV files in: {folder}')
           csv_files = glob.glob(f'{folder}/*.csv')
@@ -93,12 +94,15 @@ jobs:
           python -c "
           import pandas as pd
           import json
+          import glob
+          import os
 
-          input_file = './backend/schemas/source/data/cfda-lookup.csv'
+          folder = './backend/schemas/source/data'
+          latest_file = max(glob.glob(f'{folder}/cfda-lookup-*.csv'), key=os.path.getmtime)
           output_file = './backend/schemas/source/base/FederalProgramNames.json'
 
-          print(f'Loading CSV file: {input_file}')
-          df = pd.read_csv(input_file)
+          print(f'Loading CSV file: {latest_file}')
+          df = pd.read_csv(latest_file)
 
           print('Processing Program Names and Numbers')
           program_names = df['Program Title'].dropna().str.strip().str.upper().tolist()
@@ -126,7 +130,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add ./backend/schemas/source/data/cfda-lookup.csv
+          git add ./backend/schemas/source/data/cfda-lookup-*.csv
           git add ./backend/schemas/source/base/FederalProgramNames.json
           git diff --cached --quiet || git commit -m "Update merged CSV and FederalProgramNames.json"
           git push
