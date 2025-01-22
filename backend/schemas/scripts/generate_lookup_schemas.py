@@ -14,18 +14,21 @@ JSON, and it can be run using `make source_data`. Input files are found in
 where "item to process" is either "cfda-lookup" or "cluster-names".
 """
 
+
 def cleanup_string(s):
     s = str(s).strip()
     s = " ".join(s.split())
     return s
 
+
 def lmap(fun, ls):
     return list(map(fun, ls))
+
 
 def process_cfda_lookup(file_path):
     print(f"Processing CFDA lookup file: {file_path}")
     df = pd.read_csv(file_path, encoding="utf-8", converters={"Program Number": str})
-
+    
     program_names = list(df["Program Title"])
     program_numbers = list(df["Program Number"])
 
@@ -55,6 +58,7 @@ def process_cfda_lookup(file_path):
         "aln_prefixes": unique_prefix_list,
     }
 
+
 def process_cluster_names(filename):
     print(f"Processing cluster names file: {filename}")
     df = pd.read_csv(filename)
@@ -64,13 +68,14 @@ def process_cluster_names(filename):
 
     return {"cluster_names": cluster_names}
 
+
 if __name__ == "__main__":
     if len(sys.argv) >= 2:
         item_to_process = sys.argv[1]
         output_file = sys.argv[2]
-        glob_str = f"./source/data/{item_to_process}-[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9].csv"
+        glob_str = f"./source/data/{item_to_process}-*.csv"
 
-        print(f"Globbing for {glob_str}")
+        print(f"Loading latest CSV file matching pattern: {glob_str}")
         list_of_files = glob.glob(glob_str)
         print(f"Found {len(list_of_files)} files")
 
@@ -78,7 +83,7 @@ if __name__ == "__main__":
             print(f"No {item_to_process} CSV files found in schemas/source/data/")
             if item_to_process == "cluster-names":
                 print("Skipping cluster-names processing as the file is not found.")
-                sys.exit(0)  # Exit without error for missing cluster-names
+                sys.exit(0)  # Exit without error for cluster-names
             else:
                 sys.exit(1)  # Exit with error for other cases
 
