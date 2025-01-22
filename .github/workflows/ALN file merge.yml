@@ -2,7 +2,7 @@
 name: ALN File Merge
 
 on:
-  workflow_dispatch: # Enables manual trigger
+  workflow_dispatch:  # Enables manual trigger
 
 jobs:
   process_and_update:
@@ -18,7 +18,7 @@ jobs:
         with:
           python-version: '3.x'
 
-      # Install required dependencies
+      # Install dependencies
       - name: Install Dependencies
         run: pip install pandas openpyxl
 
@@ -29,12 +29,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y jsonnet
-          pip install git+https://github.com/google/jsonnet.git
-
-      - name: Install Jsonnetfmt
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y jsonnet
+          pip install git+https://github.com/google/jsonnet.git 
 
       # Merge, clean, and standardize CSV files
       - name: Merge, Clean, and Standardize CSV Files
@@ -89,38 +84,6 @@ jobs:
           print('CSV processing completed successfully.')
           "
 
-      # Update FederalProgramNames.json
-      - name: Update FederalProgramNames.json
-        run: |
-          python -c "
-          import pandas as pd
-          import json
-
-          input_file = './backend/schemas/source/data/cfda-lookup-*.csv'
-          output_file = './backend/schemas/source/base/FederalProgramNames.json'
-
-          print(f'Loading latest CSV file matching pattern: {input_file}')
-          df = pd.read_csv(input_file)
-
-          print('Processing Program Names and Numbers')
-          program_names = df['Program Title'].dropna().str.strip().str.upper().tolist()
-          program_numbers = df['Program Number'].dropna().str.strip().tolist()
-
-          unique_prefixes = {num.split('.')[0]: None for num in program_numbers if '.' in num}
-          unique_cfda = {num: None for num in program_numbers}
-
-          output_data = {
-              'program_names': program_names,
-              'all_alns': list(unique_cfda.keys()),
-              'aln_prefixes': list(unique_prefixes.keys()),
-          }
-
-          print(f'Writing JSON file to: {output_file}')
-          with open(output_file, 'w') as json_file:
-              json.dump(output_data, json_file, indent=2, sort_keys=True)
-          print('FederalProgramNames.json updated successfully')
-          "
-
       # Commit and push merged CSV and updated JSON
       - name: Commit and Push Changes
         env:
@@ -129,8 +92,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add ./backend/schemas/source/data/cfda-lookup-*.csv
-          git add ./backend/schemas/source/base/FederalProgramNames.json
-          git diff --cached --quiet || git commit -m "Update merged CSV and FederalProgramNames.json"
+          git diff --cached --quiet || git commit -m "Update merged CSV"
           git push
 
       # Run make all
